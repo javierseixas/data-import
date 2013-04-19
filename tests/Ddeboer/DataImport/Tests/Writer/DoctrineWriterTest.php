@@ -7,47 +7,63 @@ use Ddeboer\DataImport\Tests\Fixtures\TestEntity;
 
 class DoctrineWriterTest extends \PHPUnit_Framework_TestCase
 {
+
+    protected $em;
+    protected $repo;
+    protected $metadata;
+
+    public function setUp()
+    {
+        $this->em = $this->getMockBuilder('Doctrine\ORM\EntityManager')
+            ->setMethods(array('getRepository', 'getClassMetadata', 'persist'))
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $this->repo = $this->getMockBuilder('Doctrine\ORM\EntityRepository')
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $this->metadata = $this->getMockBuilder('Doctrine\ORM\Mapping\ClassMetadata')
+            ->setMethods(array('getName', 'getFieldNames', 'setFieldValue'))
+            ->disableOriginalConstructor()
+            ->getMock();
+    }
+
     public function testWriteItem()
     {
-        $em = $this->getMockBuilder('Doctrine\ORM\EntityManager')
-                ->setMethods(array('getRepository', 'getClassMetadata', 'persist'))
-                ->disableOriginalConstructor()
-                ->getMock();
 
-        $repo = $this->getMockBuilder('Doctrine\ORM\EntityRepository')
-                ->disableOriginalConstructor()
-                ->getMock();
 
-        $metadata = $this->getMockBuilder('Doctrine\ORM\Mapping\ClassMetadata')
-                ->setMethods(array('getName', 'getFieldNames', 'setFieldValue'))
-                ->disableOriginalConstructor()
-                ->getMock();
-
-        $metadata->expects($this->any())
+        $this->metadata->expects($this->any())
                 ->method('getName')
                 ->will($this->returnValue('Ddeboer\DataImport\Tests\Fixtures\TestEntity'));
 
-        $metadata->expects($this->any())
+        $this->metadata->expects($this->any())
                 ->method('getFieldNames')
                 ->will($this->returnValue(array('firstProperty', 'secondProperty')));
 
-        $em->expects($this->once())
+        $this->em->expects($this->once())
                 ->method('getRepository')
-                ->will($this->returnValue($repo));
+                ->will($this->returnValue($this->repo));
 
-        $em->expects($this->once())
+        $this->em->expects($this->once())
                 ->method('getClassMetadata')
-                ->will($this->returnValue($metadata));
+                ->will($this->returnValue($this->metadata));
 
-        $em->expects($this->once())
+        $this->em->expects($this->once())
                 ->method('persist');
 
-        $writer = new DoctrineWriter($em, 'DdeboerDataImport:TestEntity');
+        $writer = new DoctrineWriter($this->em, 'DdeboerDataImport:TestEntity');
 
         $item = array(
             'firstProperty' => 'some value',
             'secondProperty'=> 'some other value'
         );
+
         $writer->writeItem($item);
+    }
+
+    public function testWriteItemWithAssociatedEntities()
+    {
+
     }
 }
